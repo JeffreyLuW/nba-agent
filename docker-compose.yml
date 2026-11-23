@@ -1,0 +1,44 @@
+# Run everything locally:  docker compose up --build
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: nba
+      POSTGRES_PASSWORD: nba
+      POSTGRES_DB: nba
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nba"]
+      interval: 5s
+      retries: 10
+
+  mcp_server:
+    build: ./mcp_server
+    ports: ["8001:8001"]
+
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      # Inside Docker, services find each other by service name.
+      MCP_SERVER_URL: http://mcp_server:8001/mcp
+      DATABASE_URL: postgresql+psycopg://nba:nba@postgres:5432/nba
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      mcp_server: { condition: service_started }
+    restart: on-failure  # retry if the MCP server is not ready yet
+
+  frontend:
+    build: ./frontend
+    environment:
+      # The browser calls the backend, so this is a localhost URL.
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports: ["3000:3000"]
+    depends_on: [backend]
+
+volumes:
+  pgdata:

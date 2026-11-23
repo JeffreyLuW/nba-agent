@@ -1,0 +1,39 @@
+# CI: runs on every pull request and on pushes to nprd (staging) and main (production).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [nprd, main]
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install ruff -r backend/requirements.txt -r mcp_server/requirements.txt
+      - name: Lint
+        run: ruff check .
+      - name: Check that the code imports
+        run: |
+          cd backend && python -c "import app.agent, app.main"
+          cd ../mcp_server && python -c "import server"
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm install
+      - run: npm run build
+
+  # TODO: an "evals" job, and deploy jobs (nprd -> staging, main -> production).

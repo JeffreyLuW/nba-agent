@@ -1,0 +1,9 @@
+/* Placeholder styles. The real design comes later. */
+body { margin: 0; font-family: system-ui, sans-serif; background: #0f1115; color: #eee; }
+main { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+.msg { padding: 10px 14px; border-radius: 10px; margin: 8px 0; white-space: pre-wrap; }
+.user { background: #1d4ed8; margin-left: 20%; }
+.assistant { background: #23262d; margin-right: 20%; }
+form { display: flex; gap: 8px; margin-top: 16px; }
+input { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #333; background: #181a20; color: #eee; }
+button { padding: 10px 16px; border-radius: 8px; border: 0; background: #f97316; color: #fff; cursor: pointer; }

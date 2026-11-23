@@ -1,0 +1,11 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+langchain>=1.0
+langgraph>=1.0
+langchain-mcp-adapters>=0.1
+# LLM providers. Keep the one you use, delete the other.
+langchain-anthropic>=1.0
+langchain-openai>=1.0
+sqlalchemy>=2.0
+psycopg[binary]>=3.2
+pydantic-settings>=2.4

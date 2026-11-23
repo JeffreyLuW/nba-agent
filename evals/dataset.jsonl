@@ -1,0 +1,3 @@
+{"id": "stats-1", "question": "How many points per game did Stephen Curry average in 2015-16?", "expected_tool": "get_player_stats", "expected_answer_contains": "30.1"}
+{"id": "stats-2", "question": "What were LeBron James's assists per game in 2019-20?", "expected_tool": "get_player_stats", "expected_answer_contains": "10.2"}
+{"id": "games-1", "question": "What NBA games are on today?", "expected_tool": "get_todays_games", "expected_answer_contains": ""}
