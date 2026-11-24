@@ -1,4 +1,6 @@
 # Tools for development and CI only (not needed to run the app).
 -r mcp_server/requirements.txt
 pytest>=8
-ruff>=0.6
+# Pinned: new ruff versions add lint rules, which would break CI by surprise.
+# Upgrade on purpose: change the number, run `ruff check --fix .`, commit.
+ruff==0.17.6

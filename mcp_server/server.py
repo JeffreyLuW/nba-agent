@@ -536,7 +536,7 @@ def parse_feed(xml_text: str, source: str) -> list[dict]:
             try:
                 published = email.utils.parsedate_to_datetime(item.findtext("pubDate"))
                 if published.tzinfo is None:
-                    published = published.replace(tzinfo=dt.timezone.utc)
+                    published = published.replace(tzinfo=dt.UTC)
             except (TypeError, ValueError):
                 pass
         summary = re.sub(r"<[^>]+>", "", html.unescape(item.findtext("description") or ""))
@@ -582,7 +582,7 @@ def search_news(query: str = "", limit: int = 8) -> dict:
         text = _norm(a["title"] + " " + a["summary"])
         return sum(w in text for w in words)
 
-    oldest = dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+    oldest = dt.datetime.min.replace(tzinfo=dt.UTC)
     ranked = sorted(unique, key=lambda a: (score(a), a["published"] or oldest), reverse=True)
     if words:
         ranked = [a for a in ranked if score(a) > 0]
