@@ -14,8 +14,8 @@ come later.
    ▼
 ┌──────────────┐  HTTP + streaming (SSE)  ┌──────────────────────┐
 │ frontend     │ ───────────────────────▶ │ backend              │
-│ Next.js      │                          │ FastAPI + LangGraph  │──▶ LLM API
-│ :3000        │                          │ :8000                │    (your key)
+│ Next.js      │                          │ FastAPI + LangGraph  │──▶ LLM (Ollama on
+│ :3000        │                          │ :8000                │    your Mac, free)
 └──────────────┘                          └──────────┬───────────┘
                                                      │ MCP (streamable HTTP)
                                  ┌───────────────────┴──────────────┐
@@ -50,12 +50,22 @@ come later.
 
 ## Run it locally
 
-You need [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+You need [Docker Desktop](https://www.docker.com/products/docker-desktop/) and
+[Ollama](https://ollama.com/download). Ollama runs the LLM on your own computer,
+so it costs nothing and needs no API key.
 
 ```bash
-cp .env.example .env        # then put your LLM API key in .env
+# 1. Install Ollama (or download the app from ollama.com), then open it once.
+brew install ollama
+# 2. Download the model (about 5 GB, one time only).
+ollama pull qwen3
+# 3. Start everything.
+cp .env.example .env
 docker compose up --build
 ```
+
+Ollama runs on your Mac (not inside Docker). The backend container reaches it at
+`http://host.docker.internal:11434`.
 
 Then open http://localhost:3000 and ask: *"How many points did Stephen Curry average in 2015-16?"*
 
@@ -95,8 +105,15 @@ CI runs on every PR and on pushes to both branches.
 
 ## Change the LLM
 
-Set `LLM_MODEL` in `.env`, as `provider:model`, for example
-`anthropic:claude-sonnet-5-5` or `openai:gpt-5-mini`, and set that provider's API key.
+Set `LLM_MODEL` in `.env`, as `provider:model`.
+
+- Free, local (default): `ollama:qwen3`. Any Ollama model with **tool calling**
+  works, e.g. `ollama:llama3.1` or `ollama:qwen3:4b` (smaller, faster). Run
+  `ollama pull <model>` first.
+- Paid: `anthropic:claude-sonnet-5-5` or `openai:gpt-5-mini`, plus that
+  provider's API key in `.env`.
+
+Restart after a change: `docker compose up --build backend`.
 
 ## Roadmap
 

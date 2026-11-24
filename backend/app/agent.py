@@ -26,6 +26,15 @@ SYSTEM_PROMPT = (
 )
 
 
+def make_llm():
+    """Create the chat model named in LLM_MODEL (e.g. "ollama:qwen3")."""
+    if settings.llm_model.startswith("ollama:"):
+        # Ollama runs on your computer, so we must tell LangChain where it is.
+        return init_chat_model(settings.llm_model, base_url=settings.ollama_base_url)
+    # Anthropic / OpenAI read their API key from the environment.
+    return init_chat_model(settings.llm_model)
+
+
 async def build_agent():
     # 1. Connect to the MCP server and turn its tools into LangChain tools.
     client = MultiServerMCPClient(
@@ -34,7 +43,7 @@ async def build_agent():
     tools = await client.get_tools()
 
     # 2. The LLM, told which tools it may call.
-    llm = init_chat_model(settings.llm_model).bind_tools(tools)
+    llm = make_llm().bind_tools(tools)
 
     async def call_llm(state: MessagesState):
         messages = [SystemMessage(SYSTEM_PROMPT), *state["messages"]]

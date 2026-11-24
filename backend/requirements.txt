@@ -3,7 +3,9 @@ uvicorn[standard]>=0.30
 langchain>=1.0
 langgraph>=1.0
 langchain-mcp-adapters>=0.1
-# LLM providers. Keep the one you use, delete the other.
+# LLM providers. Ollama (free, local) is the default.
+langchain-ollama>=1.0
+# Paid providers. Optional, only needed if you switch LLM_MODEL to them.
 langchain-anthropic>=1.0
 langchain-openai>=1.0
 sqlalchemy>=2.0

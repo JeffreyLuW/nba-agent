@@ -26,6 +26,10 @@ services:
       # Inside Docker, services find each other by service name.
       MCP_SERVER_URL: http://mcp_server:8001/mcp
       DATABASE_URL: postgresql+psycopg://nba:nba@postgres:5432/nba
+      # Ollama runs on your Mac, not in Docker. host.docker.internal = "my Mac".
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # makes the name work on Linux too
     ports: ["8000:8000"]
     depends_on:
       postgres: { condition: service_healthy }
