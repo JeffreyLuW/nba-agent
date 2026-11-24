@@ -21,11 +21,20 @@ export default function ChatPage() {
     setMessages((m) => [...m, { role: "user", text: question }, { role: "assistant", text: "" }]);
 
     // The backend streams Server-Sent Events: lines like `data: {"text": "..."}`.
-    const res = await fetch(`${API_URL}/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: question, conversation_id: "demo" }),
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: question, conversation_id: "demo" }),
+      });
+      if (!res.ok || !res.body) throw new Error(`backend answered ${res.status}`);
+    } catch (err) {
+      // Show the problem instead of a "..." bubble that never fills.
+      setMessages((m) => [...m.slice(0, -1), { role: "assistant", text: `⚠️ ${err}` }]);
+      setLoading(false);
+      return;
+    }
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -45,6 +54,9 @@ export default function ChatPage() {
           if (event.type === "tool_call") {
             // The agent is calling an MCP tool: show it, so you can see the agent "think".
             return [...m.slice(0, -1), { ...last, tools: [...(last.tools ?? []), event.name] }];
+          }
+          if (event.type === "error") {
+            return [...m.slice(0, -1), { ...last, text: `${last.text}\n⚠️ Error: ${event.message}` }];
           }
           if (typeof event.text !== "string") return m; // e.g. tool_result: not shown
           return [...m.slice(0, -1), { ...last, text: last.text + event.text }];

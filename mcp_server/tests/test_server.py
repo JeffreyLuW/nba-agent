@@ -349,3 +349,17 @@ def test_all_tools_are_registered_with_descriptions():
     for tool in tools.values():
         assert tool.description and len(tool.description) > 40
     assert "player_name" in tools["get_player_stats"].inputSchema["properties"]
+
+
+def test_disconnect_noise_filter():
+    import logging
+
+    import anyio
+
+    def record(exc):
+        return logging.LogRecord("mcp", logging.ERROR, "", 0, "msg", None,
+                                 (type(exc), exc, None))
+
+    noise_filter = server._HideClientDisconnectNoise()
+    assert noise_filter.filter(record(anyio.ClosedResourceError())) is False
+    assert noise_filter.filter(record(ValueError("real problem"))) is True

@@ -6,6 +6,7 @@ returns Server-Sent Events (SSE). Each event is one "data:" line with JSON:
     {"text": "..."}                                   a piece of the answer
     {"type": "tool_call", "name": "...", "args": {}}  the agent calls a tool
     {"type": "tool_result", "name": "...", "content": "..."}  what the tool returned
+    {"type": "error", "message": "..."}               something broke
 
 and at the end "data: [DONE]". The tool events let the UI show what the agent
 is doing, and let evals check which tool it used.
@@ -41,6 +42,12 @@ app.add_middleware(
     allow_origins=[settings.frontend_origin],
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+
+EMPTY_ANSWER = (
+    "Sorry, the model gave an empty answer. Please try again, "
+    "or try another model (see LLM_MODEL in .env)."
 )
 
 
@@ -83,25 +90,35 @@ async def chat(req: ChatRequest):
 
     async def event_stream():
         answer = ""
-        # Two stream modes at once:
-        #  "messages" -> LLM tokens as they are generated (for the live answer)
-        #  "updates"  -> each finished graph step (to see tool calls and results)
-        async for mode, data in agent.astream(
-            {"messages": [HumanMessage(req.message)]},
-            config,
-            stream_mode=["messages", "updates"],
-        ):
-            if mode == "messages":
-                chunk, meta = data
-                # AIMessageChunk = streamed piece; AIMessage = models that do not stream.
-                if isinstance(chunk, AIMessage) and meta.get("langgraph_node") == "agent":
-                    text = chunk.text  # ignores tool-call parts
-                    if text:
-                        answer += text
-                        yield sse({"text": text})
-            else:
-                for event in tool_events(data):
-                    yield sse(event)
+        try:
+            # Two stream modes at once:
+            #  "messages" -> LLM tokens as they are generated (for the live answer)
+            #  "updates"  -> each finished graph step (to see tool calls and results)
+            async for mode, data in agent.astream(
+                {"messages": [HumanMessage(req.message)]},
+                config,
+                stream_mode=["messages", "updates"],
+            ):
+                if mode == "messages":
+                    chunk, meta = data
+                    # AIMessageChunk = streamed piece; AIMessage = models that do not stream.
+                    if isinstance(chunk, AIMessage) and meta.get("langgraph_node") == "agent":
+                        text = chunk.text  # ignores tool-call parts
+                        if text:
+                            answer += text
+                            yield sse({"text": text})
+                else:
+                    for event in tool_events(data):
+                        yield sse(event)
+        except Exception as e:
+            # Without this, an error just ends the stream and the page shows "..." forever.
+            log.exception("Agent failed")
+            yield sse({"type": "error", "message": f"{type(e).__name__}: {e}"})
+        else:
+            if not answer.strip():
+                log.warning("The model returned an empty answer")
+                answer = EMPTY_ANSWER
+                yield sse({"text": answer})
         yield "data: [DONE]\n\n"
 
         try:

@@ -169,6 +169,14 @@ Set `LLM_MODEL` in `.env`, as `provider:model`.
 
 Restart after a change: `docker compose up --build backend`.
 
+Ollama settings (optional, in `.env`):
+- `OLLAMA_REASONING=false` (default). qwen3 can "think" before it answers. That
+  is much slower, and the thinking is hidden, so the page shows "…" for a long
+  time. Set `true` to try it.
+- `OLLAMA_NUM_CTX=16384` (default). How much text the model can read at once.
+  Ollama's own default is too small for our tools, and the model then gives
+  empty or confused answers.
+
 ## Roadmap
 
 - [x] Real news source for `search_news`

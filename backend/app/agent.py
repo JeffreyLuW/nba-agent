@@ -48,7 +48,12 @@ def make_llm():
     """Create the chat model named in LLM_MODEL (e.g. "ollama:qwen3")."""
     if settings.llm_model.startswith("ollama:"):
         # Ollama runs on your computer, so we must tell LangChain where it is.
-        return init_chat_model(settings.llm_model, base_url=settings.ollama_base_url)
+        return init_chat_model(
+            settings.llm_model,
+            base_url=settings.ollama_base_url,
+            reasoning=settings.ollama_reasoning,  # False = no slow hidden "thinking"
+            num_ctx=settings.ollama_num_ctx,  # room for tools + tool results
+        )
     # Anthropic / OpenAI read their API key from the environment.
     return init_chat_model(settings.llm_model)
 

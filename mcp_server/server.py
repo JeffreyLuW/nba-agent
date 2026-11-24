@@ -601,6 +601,17 @@ def search_news(query: str = "", limit: int = 8) -> dict:
     return result
 
 
+class _HideClientDisconnectNoise(logging.Filter):
+    """mcp 1.x logs a scary traceback ("Error in standalone SSE writer ...
+    ClosedResourceError") each time a client closes its session. That is normal
+    (our agent opens a short session per tool call), so we hide it."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        exc = record.exc_info[1] if record.exc_info else None
+        return type(exc).__name__ != "ClosedResourceError"
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
+    logging.getLogger("mcp.server.streamable_http").addFilter(_HideClientDisconnectNoise())
     mcp.run(transport="streamable-http")
