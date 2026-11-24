@@ -45,8 +45,8 @@ export default function ChatPage() {
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split("\n\n");
       buffer = events.pop() ?? "";
-      for (const event of events) {
-        const data = event.replace(/^data: /, "");
+      for (const raw of events) {
+        const data = raw.replace(/^data: /, "");
         if (data === "[DONE]") continue;
         const event = JSON.parse(data);
         setMessages((m) => {

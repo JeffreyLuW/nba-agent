@@ -36,6 +36,8 @@ jobs:
         with:
           node-version: "22"
       - run: npm install
+      - name: Type check (catches bugs like using a variable before it exists)
+        run: npm run typecheck
       - run: npm run build
 
   # TODO: an "evals" job (needs an LLM), and deploy jobs (nprd -> staging, main -> production).
