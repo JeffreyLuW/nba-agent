@@ -1,3 +1,5 @@
 # Pinned below 2.0: in mcp 2.x, FastMCP was renamed to MCPServer.
 mcp>=1.10,<2
 nba_api>=1.10
+# HTTP client for the news RSS feeds (mcp already installs it, listed for clarity).
+httpx>=0.27

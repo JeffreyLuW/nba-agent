@@ -4,7 +4,8 @@ import { FormEvent, useState } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-type Message = { role: "user" | "assistant"; text: string };
+// `tools` = names of the tools the agent called for this answer.
+type Message = { role: "user" | "assistant"; text: string; tools?: string[] };
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -38,10 +39,15 @@ export default function ChatPage() {
       for (const event of events) {
         const data = event.replace(/^data: /, "");
         if (data === "[DONE]") continue;
-        const { text } = JSON.parse(data);
+        const event = JSON.parse(data);
         setMessages((m) => {
           const last = m[m.length - 1];
-          return [...m.slice(0, -1), { ...last, text: last.text + text }];
+          if (event.type === "tool_call") {
+            // The agent is calling an MCP tool: show it, so you can see the agent "think".
+            return [...m.slice(0, -1), { ...last, tools: [...(last.tools ?? []), event.name] }];
+          }
+          if (typeof event.text !== "string") return m; // e.g. tool_result: not shown
+          return [...m.slice(0, -1), { ...last, text: last.text + event.text }];
         });
       }
     }
@@ -53,6 +59,9 @@ export default function ChatPage() {
       <h1>🏀 NBA Agent</h1>
       {messages.map((m, i) => (
         <div key={i} className={`msg ${m.role}`}>
+          {m.tools && m.tools.length > 0 && (
+            <div className="tools">🔧 {m.tools.join(", ")}</div>
+          )}
           {m.text || "…"}
         </div>
       ))}

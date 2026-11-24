@@ -15,13 +15,15 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install
-        run: pip install ruff -r backend/requirements.txt -r mcp_server/requirements.txt
+        run: pip install -r requirements-dev.txt -r backend/requirements.txt
       - name: Lint
         run: ruff check .
       - name: Check that the code imports
         run: |
           cd backend && python -c "import app.agent, app.main"
           cd ../mcp_server && python -c "import server"
+      - name: Unit tests (NBA.com and the LLM are mocked, so no network needed)
+        run: pytest
 
   frontend:
     runs-on: ubuntu-latest
@@ -36,4 +38,4 @@ jobs:
       - run: npm install
       - run: npm run build
 
-  # TODO: an "evals" job, and deploy jobs (nprd -> staging, main -> production).
+  # TODO: an "evals" job (needs an LLM), and deploy jobs (nprd -> staging, main -> production).

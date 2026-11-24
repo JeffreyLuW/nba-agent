@@ -11,6 +11,8 @@
 Later this is where we add more nodes or more agents (multi-agent).
 """
 
+import datetime as dt
+
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -20,10 +22,26 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 from app.config import settings
 
-SYSTEM_PROMPT = (
-    "You are a fun, expert NBA assistant. Use the tools to get real data. "
-    "Never invent stats. If a tool fails, say so."
-)
+SYSTEM_PROMPT = """You are a fun, expert NBA assistant.
+Today is {today}. The current NBA season is {season}.
+
+Rules:
+- For any stat, score, standing or news, call a tool first. Write seasons like "2015-16".
+- Only use numbers that appear in the tool results. Never invent or "remember" stats.
+- If a tool returns an error, say so plainly and do not guess.
+- If a name matches several players, ask which one (or pick the obvious star and say so).
+"""
+
+
+def current_season(today: dt.date) -> str:
+    """NBA seasons start in October: Nov 2026 -> "2026-27"."""
+    start = today.year if today.month >= 10 else today.year - 1
+    return f"{start}-{(start + 1) % 100:02d}"
+
+
+def system_prompt() -> str:
+    today = dt.datetime.now().astimezone().date()
+    return SYSTEM_PROMPT.format(today=today.isoformat(), season=current_season(today))
 
 
 def make_llm():
@@ -46,7 +64,7 @@ async def build_agent():
     llm = make_llm().bind_tools(tools)
 
     async def call_llm(state: MessagesState):
-        messages = [SystemMessage(SYSTEM_PROMPT), *state["messages"]]
+        messages = [SystemMessage(system_prompt()), *state["messages"]]
         return {"messages": [await llm.ainvoke(messages)]}
 
     # 3. The graph.

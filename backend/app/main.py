@@ -1,8 +1,14 @@
 """FastAPI app. Serves the agent over HTTP with streaming.
 
 POST /chat  {"message": "...", "conversation_id": "..."}
-returns Server-Sent Events (SSE): one "data:" line per text chunk,
-then "data: [DONE]".
+returns Server-Sent Events (SSE). Each event is one "data:" line with JSON:
+
+    {"text": "..."}                                   a piece of the answer
+    {"type": "tool_call", "name": "...", "args": {}}  the agent calls a tool
+    {"type": "tool_result", "name": "...", "content": "..."}  what the tool returned
+
+and at the end "data: [DONE]". The tool events let the UI show what the agent
+is doing, and let evals check which tool it used.
 """
 
 import json
@@ -12,7 +18,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from langchain_core.messages import AIMessageChunk, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from pydantic import BaseModel
 
 from app.agent import build_agent
@@ -38,6 +44,28 @@ app.add_middleware(
 )
 
 
+def sse(payload: dict) -> str:
+    return f"data: {json.dumps(payload, default=str)}\n\n"
+
+
+def tool_events(update: dict) -> list[dict]:
+    """Find tool calls and tool results in one LangGraph "updates" item."""
+    events = []
+    for node_update in update.values():
+        for msg in (node_update or {}).get("messages", []):
+            if isinstance(msg, AIMessage):
+                for call in msg.tool_calls:
+                    events.append({"type": "tool_call", "name": call["name"], "args": call["args"]})
+            elif isinstance(msg, ToolMessage):
+                content = msg.content
+                if isinstance(content, list):  # MCP results can be a list of blocks
+                    content = "".join(
+                        b.get("text", "") if isinstance(b, dict) else str(b) for b in content
+                    )
+                events.append({"type": "tool_result", "name": msg.name, "content": content})
+    return events
+
+
 class ChatRequest(BaseModel):
     message: str
     conversation_id: str = "default"
@@ -55,15 +83,25 @@ async def chat(req: ChatRequest):
 
     async def event_stream():
         answer = ""
-        # stream_mode="messages" gives us LLM tokens as they are generated.
-        async for chunk, meta in agent.astream(
-            {"messages": [HumanMessage(req.message)]}, config, stream_mode="messages"
+        # Two stream modes at once:
+        #  "messages" -> LLM tokens as they are generated (for the live answer)
+        #  "updates"  -> each finished graph step (to see tool calls and results)
+        async for mode, data in agent.astream(
+            {"messages": [HumanMessage(req.message)]},
+            config,
+            stream_mode=["messages", "updates"],
         ):
-            if isinstance(chunk, AIMessageChunk) and meta.get("langgraph_node") == "agent":
-                text = chunk.text  # ignores tool-call parts
-                if text:
-                    answer += text
-                    yield f"data: {json.dumps({'text': text})}\n\n"
+            if mode == "messages":
+                chunk, meta = data
+                # AIMessageChunk = streamed piece; AIMessage = models that do not stream.
+                if isinstance(chunk, AIMessage) and meta.get("langgraph_node") == "agent":
+                    text = chunk.text  # ignores tool-call parts
+                    if text:
+                        answer += text
+                        yield sse({"text": text})
+            else:
+                for event in tool_events(data):
+                    yield sse(event)
         yield "data: [DONE]\n\n"
 
         try:

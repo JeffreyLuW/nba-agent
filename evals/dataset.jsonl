@@ -1,3 +1,23 @@
-{"id": "stats-1", "question": "How many points per game did Stephen Curry average in 2015-16?", "expected_tool": "get_player_stats", "expected_answer_contains": "30.1"}
-{"id": "stats-2", "question": "What were LeBron James's assists per game in 2019-20?", "expected_tool": "get_player_stats", "expected_answer_contains": "10.2"}
-{"id": "games-1", "question": "What NBA games are on today?", "expected_tool": "get_todays_games", "expected_answer_contains": ""}
+{"id": "stats-curry-ppg-2016", "question": "How many points per game did Stephen Curry average in 2015-16?", "expected_tools": ["get_player_stats"], "expected_args": {"get_player_stats": {"player_name": "curry", "season": "2015-16"}}, "answer_contains": ["30.1"]}
+{"id": "stats-lebron-ast-2020", "question": "What were LeBron James's assists per game in 2019-20?", "expected_tools": ["get_player_stats"], "expected_args": {"get_player_stats": {"season": "2019-20"}}, "answer_contains": ["10.2"]}
+{"id": "stats-westbrook-triple-double", "question": "What were Russell Westbrook's points, rebounds and assists per game in 2016-17?", "expected_tools": ["get_player_stats"], "answer_contains": ["31.6", "10.7", "10.4"]}
+{"id": "stats-jokic-reb-2022", "question": "How many rebounds per game did Nikola Jokic average in 2021-22?", "expected_tools": ["get_player_stats"], "answer_contains": ["13.8"]}
+{"id": "stats-harden-2019", "question": "How many points did James Harden average in the 2018-19 season?", "expected_tools": ["get_player_stats"], "answer_contains": ["36.1"]}
+{"id": "stats-curry-3pt-2016", "question": "What was Steph Curry's three-point percentage in 2015-16?", "expected_tools": ["get_player_stats"], "answer_contains_any": ["45.4", "0.454", ".454"]}
+{"id": "stats-nickname-kd", "question": "How many points did KD average in 2013-14?", "expected_tools": ["get_player_stats"], "answer_contains": ["32"]}
+{"id": "stats-playoffs-lebron-2016", "question": "How many points per game did LeBron James average in the 2016 playoffs?", "expected_tools": ["get_player_stats"], "expected_args": {"get_player_stats": {"season": "2015-16", "playoffs": true}}, "answer_contains": ["26.3"]}
+{"id": "stats-career-jordan", "question": "What are Michael Jordan's career points per game?", "expected_tools": ["get_player_stats"], "expected_args": {"get_player_stats": {"season": "career"}}, "answer_contains": ["30.1"]}
+{"id": "stats-this-season-wemby", "question": "How is Victor Wembanyama doing this season?", "expected_tools": ["get_player_stats|get_player_game_log"]}
+{"id": "gamelog-kobe-81", "question": "What was Kobe Bryant's highest-scoring game in the 2005-06 season?", "expected_tools": ["get_player_game_log"], "expected_args": {"get_player_game_log": {"sort_by": "points"}}, "answer_contains": ["81"]}
+{"id": "gamelog-lebron-last-3", "question": "How did LeBron James play in his last 3 games?", "expected_tools": ["get_player_game_log"]}
+{"id": "compare-curry-lebron-2016", "question": "Who scored more per game in 2015-16, Stephen Curry or LeBron James?", "expected_tools": ["compare_players|get_player_stats"], "answer_contains": ["30.1", "25.3"]}
+{"id": "compare-embiid-jokic-2023", "question": "Compare Joel Embiid and Nikola Jokic in 2022-23.", "expected_tools": ["compare_players|get_player_stats"], "answer_contains": ["33.1", "24.5"]}
+{"id": "standings-warriors-73-9", "question": "What was the Golden State Warriors' record in 2015-16?", "expected_tools": ["get_team_standings"], "expected_args": {"get_team_standings": {"season": "2015-16"}}, "answer_contains": ["73"]}
+{"id": "standings-celtics-2024", "question": "How many wins did the Boston Celtics have in 2023-24?", "expected_tools": ["get_team_standings"], "answer_contains": ["64"]}
+{"id": "standings-east-leader-now", "question": "Who is leading the Eastern Conference right now?", "expected_tools": ["get_team_standings"]}
+{"id": "games-today", "question": "What NBA games are on today?", "expected_tools": ["get_todays_games"]}
+{"id": "news-lakers", "question": "Any recent news about the Lakers?", "expected_tools": ["search_news"], "expected_args": {"search_news": {"query": "lakers"}}}
+{"id": "news-injuries", "question": "What's the latest NBA injury news?", "expected_tools": ["search_news"]}
+{"id": "error-unknown-player", "question": "What are Zxqwerty Blorp's stats this season?", "expected_tools": ["get_player_stats"], "answer_contains_any": ["couldn't", "could not", "can't", "cannot", "no player", "not find", "no nba player", "doesn't", "does not", "unable", "not found"]}
+{"id": "error-future-season", "question": "How many points did LeBron James average in 2040-41?", "expected_tools": ["get_player_stats"]}
+{"id": "no-tool-greeting", "question": "Hi! What can you help me with?", "expected_tools": []}

@@ -31,12 +31,32 @@ come later.
 
 | Folder        | What it is |
 |---------------|------------|
-| `mcp_server/` | An MCP server. It wraps the free `nba_api` package and exposes **tools**: `get_player_stats`, `get_todays_games`, `search_news` (stub). |
+| `mcp_server/` | An MCP server. It wraps free NBA data (`nba_api` + RSS news feeds) and exposes 6 **tools** (see below). `cache.py` keeps answers in memory so we don't hit NBA.com rate limits. |
 | `backend/`    | FastAPI app. `app/agent.py` builds the LangGraph agent and loads the MCP tools with `langchain-mcp-adapters`. `app/main.py` streams answers at `POST /chat`. |
 | `frontend/`   | Next.js (TypeScript) chat page. Placeholder UI. |
 | `db/`         | `init.sql` creates the Postgres tables (conversations, messages). |
-| `evals/`      | A small question set and a script that scores the agent. |
-| `.github/workflows/` | CI: lint, import check, frontend build. |
+| `evals/`      | 23 test questions (`dataset.jsonl`) and a script that scores the agent (`run_evals.py`, `checks.py`). |
+| `.github/workflows/` | CI: lint, unit tests, import check, frontend build. |
+
+## MCP tools
+
+| Tool | What it answers | Example question |
+|------|-----------------|------------------|
+| `get_player_stats` | Per-game averages for one season, a playoff run, or a career | "Curry's points in 2015-16?" |
+| `get_player_game_log` | Game-by-game box scores, newest first or best first | "Kobe's best game in 2005-06?" |
+| `compare_players` | Two players side by side, with the difference and who is better | "Curry or LeBron in 2015-16?" |
+| `get_team_standings` | Wins, losses, rank, games back, streak (filter by conference or team) | "Who leads the West?" |
+| `get_todays_games` | Today's games with live scores | "What games are on tonight?" |
+| `search_news` | Latest headlines from ESPN, CBS Sports and Yahoo RSS feeds | "Any Lakers news?" |
+
+All tools return JSON. If something goes wrong (unknown player, bad season,
+NBA.com down) a tool returns `{"error": "..."}` instead of crashing, so the LLM
+can tell you the truth instead of guessing.
+
+**Caching.** stats.nba.com blocks clients that call it too often. So each answer
+is kept in memory for a while (season stats: 6 hours, standings and game logs:
+30 minutes, live scores: 30 seconds, news: 10 minutes), and there is a short
+pause between two real calls. See `mcp_server/cache.py`.
 
 ### Key ideas you can learn here
 
@@ -46,7 +66,12 @@ come later.
   any MCP client (this agent, Claude Desktop, MCP Inspector) can use them.
 - **LangGraph**: the agent is a graph: `agent → tools → agent → … → answer`.
   New nodes and more agents (multi-agent) are added here later.
+- **Tool descriptions are prompts**: the LLM picks a tool by reading its
+  docstring in `server.py`. Clear docstrings with examples = better tool choice.
+- **Mocking**: unit tests replace NBA.com with fake data, so tests are fast,
+  free and work without internet.
 - **Evals**: a fixed question set to check the agent still works after changes.
+  Unlike unit tests, they test the LLM + tools together.
 
 ## Run it locally
 
@@ -92,9 +117,38 @@ cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload
 cd frontend && npm install && npm run dev
 ```
 
+### Run the unit tests
+
+No Docker, no LLM and no internet needed: NBA.com is mocked.
+
+```bash
+pip install -r requirements-dev.txt -r backend/requirements.txt
+pytest
+```
+
 ### Run evals
 
-With everything running: `python evals/run_evals.py`
+Evals ask the real agent real questions. You need everything running
+(`docker compose up` + Ollama), then:
+
+```bash
+python evals/run_evals.py              # all 23 questions (takes a few minutes)
+python evals/run_evals.py --only stats # only ids starting with "stats"
+python evals/run_evals.py --verbose    # also print the answers
+```
+
+Each question is scored with three checks (see `evals/checks.py`):
+
+| Check | Question it answers |
+|-------|---------------------|
+| `tools` | Did the agent call the right tool, with the right arguments (e.g. `season="2015-16"`)? |
+| `contains` | Does the answer have the known correct value (e.g. Curry 2015-16 = `30.1`)? |
+| `grounded` | Is every number in the answer found in a tool result? If not, the LLM invented it. |
+
+The backend stream sends tool calls and tool results as extra events, so the
+eval script (and the web page) can see which tools the agent used. Results are
+saved to `evals/results/` so you can compare models, for example
+`ollama:qwen3` vs. `ollama:qwen3:4b`.
 
 ## Branches
 
@@ -117,9 +171,11 @@ Restart after a change: `docker compose up --build backend`.
 
 ## Roadmap
 
-- [ ] Real news source for `search_news`
+- [x] Real news source for `search_news`
+- [x] Player game logs, comparisons, standings, caching
+- [x] First eval set (tool choice + no invented numbers)
 - [ ] Save chat history in Postgres (LangGraph Postgres checkpointer)
 - [ ] Better UI (the fun part)
 - [ ] Features: debate mode, what-if simulator, player cards
-- [ ] More evals, scored in CI
+- [ ] More evals (LLM-as-judge), scored in CI
 - [ ] Deploy to AWS
